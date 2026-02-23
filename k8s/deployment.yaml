@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+        - name: my-app
+          image: IMAGE_TAG          # Jenkins replaces this at deploy time
+          imagePullPolicy: Never    # ← IMPORTANT: use local image, don't pull from internet
+          ports:
+            - containerPort: 5000
