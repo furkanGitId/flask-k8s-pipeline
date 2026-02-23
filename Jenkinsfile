@@ -5,6 +5,8 @@ pipeline {
         DOCKER_IMAGE = "my-app"                          // just a local image name, no registry prefix
         DOCKER_TAG   = "${BUILD_NUMBER}"
         KUBECONFIG   = "/var/lib/jenkins/.kube/config"
+        MINIKUBE_HOME = "/home/furkan"
+        DOCKER_HOST   = "unix:///var/run/docker.sock"
     }
 
     stages {
