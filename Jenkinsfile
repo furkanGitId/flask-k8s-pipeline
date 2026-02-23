@@ -92,6 +92,10 @@ pipeline {
         DOCKER_TAG    = "${BUILD_NUMBER}"
         KUBECONFIG    = "/var/lib/jenkins/.kube/config"
         MINIKUBE_HOME = "/home/furkan"
+        // Explicitly clear any stale docker env
+        DOCKER_HOST      = ""
+        DOCKER_TLS_VERIFY = ""
+        DOCKER_CERT_PATH  = ""
     }
 
     stages {
@@ -112,16 +116,14 @@ pipeline {
 
         stage('🐳 Build Docker Image inside Minikube') {
             steps {
-                sh """
-                    # Get minikube's internal docker env and build inside it
-                    export DOCKER_HOST=\$(minikube -p minikube docker-env --shell bash | grep DOCKER_HOST | cut -d= -f2 | tr -d '"')
-                    export DOCKER_TLS_VERIFY=1
-                    export DOCKER_CERT_PATH=\$(minikube -p minikube docker-env --shell bash | grep DOCKER_CERT_PATH | cut -d= -f2 | tr -d '"')
+                sh '''
+                    # Load minikube docker env properly using eval
+                    eval $(minikube -p minikube docker-env)
 
-                    docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
-                    docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest
-                    echo "✅ Image built: ${DOCKER_IMAGE}:${DOCKER_TAG}"
-                """
+                    docker build -t $DOCKER_IMAGE:$DOCKER_TAG .
+                    docker tag $DOCKER_IMAGE:$DOCKER_TAG $DOCKER_IMAGE:latest
+                    echo "✅ Image built: $DOCKER_IMAGE:$DOCKER_TAG"
+                '''
             }
         }
 
