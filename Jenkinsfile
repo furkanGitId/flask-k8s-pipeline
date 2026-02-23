@@ -91,7 +91,6 @@ pipeline {
         DOCKER_IMAGE  = "my-app"
         DOCKER_TAG    = "${BUILD_NUMBER}"
         KUBECONFIG    = "/var/lib/jenkins/.kube/config"
-        MINIKUBE_HOME = "/home/furkan"
         // Explicitly clear any stale docker env
         DOCKER_HOST      = ""
         DOCKER_TLS_VERIFY = ""
