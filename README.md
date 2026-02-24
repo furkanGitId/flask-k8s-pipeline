@@ -145,7 +145,7 @@ https://shaneka-plummier-untreacherously.ngrok-free.dev -> http://localhost:8080
 > Suggested GitHub repo name: `flask-k8s-pipeline`
 
 ```bash
-echo "# todo-cicd-pipeline" >> README.md
+echo "# flask-k8s-pipeline" >> README.md
 git init
 git add README.md
 git commit -m "first commit"
