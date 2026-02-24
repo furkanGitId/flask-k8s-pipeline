@@ -43,7 +43,7 @@ pipeline {
             steps {
                 sh """
                     # Replace IMAGE_TAG placeholder in deployment yaml with actual image name
-                    sed -i 's|IMAGE_TAG|${DOCKER_IMAGE}:${DOCKER_TAG}|g' k8s/deployment.
+                    sed -i 's|IMAGE_TAG|${DOCKER_IMAGE}:${DOCKER_TAG}|g' k8s/deployment.yaml
                     
                     # Apply Kubernetes manifests
                     kubectl apply -f k8s/deployment.yaml
