@@ -346,4 +346,163 @@ Handling connection for 30080
 Handling connection for 30080
 ```
 
+---
+
+# Kubernetes YAML Files Explained
+
+## 📄 `k8s/deployment.yaml` — Line by Line
+
+```yaml
+apiVersion: apps/v1
+```
+Which version of the Kubernetes API to use. Deployments belong to the `apps/v1` group. Think of it like specifying which "edition" of a rulebook to follow.
+
+```yaml
+kind: Deployment
+```
+What type of object we are creating. A Deployment tells Kubernetes: *"Keep this app running always, and if it crashes — restart it."*
+
+```yaml
+metadata:
+  name: my-app
+```
+The name of this Deployment. You'll use this name to check status, update, or delete it. Like a label on a box.
+
+```yaml
+spec:
+```
+`spec` = specification = the actual instructions. Everything under `spec` describes how the deployment should behave.
+
+```yaml
+  replicas: 2
+```
+How many copies (pods) of your app to run. Setting `2` means Kubernetes will always keep 2 instances running. If one crashes, it auto-creates a new one. Great for zero downtime.
+
+```yaml
+  selector:
+    matchLabels:
+      app: my-app
+```
+How Kubernetes finds which pods belong to this Deployment. It looks for pods that have the label `app: my-app`. Think of it like a search filter.
+
+```yaml
+  template:
+```
+The blueprint/template for each Pod (container instance). Everything below describes what each running copy will look like.
+
+```yaml
+    metadata:
+      labels:
+        app: my-app
+```
+Attaches the label `app: my-app` to every pod created. This label must match the `selector.matchLabels` above so Kubernetes can link them together.
+
+```yaml
+    spec:
+      containers:
+        - name: my-app
+```
+Defines the container inside the pod. `name: my-app` is just the container's friendly name inside Kubernetes.
+
+```yaml
+          image: IMAGE_TAG
+```
+Which Docker image to run. In your Jenkinsfile, Jenkins will automatically replace `IMAGE_TAG` with the real image name like `yourname/my-app:45`. This is the image that was built and pushed to DockerHub.
+
+```yaml
+          ports:
+            - containerPort: 5000
+```
+The port your app listens on inside the container. Your Flask app runs on port `5000`, so we tell Kubernetes about it. This does **not** expose it to the outside world yet — that's the Service's job.
+
+---
+
+## 📄 `k8s/service.yaml` — Line by Line
+
+```yaml
+apiVersion: v1
+```
+API version for a Service. Services are a core Kubernetes object, so they use `v1` (no `apps/` prefix needed).
+
+```yaml
+kind: Service
+```
+What we're creating — a Service. A Service is like a traffic router. It receives requests and forwards them to the right pods.
+
+```yaml
+metadata:
+  name: my-app-service
+```
+Name of this Service. Used to identify it inside Kubernetes.
+
+```yaml
+spec:
+  selector:
+    app: my-app
+```
+Which pods should this Service send traffic to? It looks for pods with label `app: my-app` — exactly what we set in the Deployment. This is how the Service and Deployment are connected.
+
+```yaml
+  type: NodePort
+```
+How to expose the Service. There are 3 types:
+
+| Type | Meaning |
+|------|---------|
+| `ClusterIP` | Only accessible inside Kubernetes (default) |
+| `NodePort` | Accessible from outside via a port on your Ubuntu machine |
+| `LoadBalancer` | Cloud only (AWS/GCP give a public IP) |
+
+Since you're on a local Ubuntu machine, `NodePort` is perfect.
+
+```yaml
+  ports:
+    - port: 80
+```
+The port other services inside Kubernetes use to reach this Service. Internal Kubernetes traffic hits port `80`.
+
+```yaml
+      targetPort: 5000
+```
+Forward traffic to port `5000` on the pod. This matches the `containerPort: 5000` in the Deployment. So the flow is: `80 → 5000` inside the container.
+
+```yaml
+      nodePort: 30080
+```
+**The port opened on your Ubuntu machine itself.** You can access your app at `http://YOUR_UBUNTU_IP:30080` from your browser. NodePort values must be between `30000–32767`.
+
+---
+
+## 🔁 Full Traffic Flow
+
+```
+Your Browser
+    ↓
+http://ubuntu-ip:30080        ← nodePort (your machine)
+    ↓
+Kubernetes Service (port 80)  ← routes traffic
+    ↓
+Pod Container (port 5000)     ← your Flask app runs here
+```
+
+---
+
+## 🔗 How Jenkinsfile Connects to These Files
+
+In your Jenkinsfile's Deploy stage:
+
+```groovy
+sh "sed -i 's|IMAGE_TAG|${DOCKER_IMAGE}:${DOCKER_TAG}|g' k8s/deployment.yaml"
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```
+
+| Command | What it does |
+|---------|-------------|
+| `sed -i` | Replaces `IMAGE_TAG` text in the YAML with the real Docker image name |
+| `kubectl apply` | Sends the YAML to Kubernetes — it creates or updates the deployment |
+| `kubectl rollout status` | Waits and confirms all pods started successfully |
+
+---
+
 **Access the app at:** `http://localhost:30080/`
